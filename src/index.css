@@ -1,6 +1,23 @@
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+html,
+body,
+#app {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+	/* Fill the whole window */
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+
+	/* Overridden in Dark Mode */
+	background-color: white;
+	color: black;
+}
+
+html,
+body,
+#app {
+	background-color: #252525;
+	color: white;
 }

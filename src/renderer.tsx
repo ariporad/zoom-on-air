@@ -27,5 +27,31 @@
  */
 
 import './index.css';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-console.log('👋 This message is being logged by "renderer.js", included via webpack');
+interface HotReloaderState {
+	Component: React.ComponentType;
+}
+
+class HotReloader extends React.Component<{}, HotReloaderState> {
+	constructor(props: {}) {
+		super(props);
+		this.state = { Component: require('./App').default };
+	}
+	componentDidMount() {
+		if ((module as any).hot) {
+			(module as any).hot.accept('./App', () => {
+				console.info('HMR Update Received, Reloading Entire Tree...');
+				this.setState({ Component: require('./App').default });
+			});
+		}
+	}
+
+	render() {
+		const { Component } = this.state;
+		return <Component />;
+	}
+}
+
+ReactDOM.render(<HotReloader />, document.getElementById('app'));

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+###
+# This file usually lives at ./node_modules/.bin/electron-forge-vscode-nix, but that version is
+# broken. (See https://github.com/electron-userland/electron-forge/issues/1369)
+###
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+ARGS=$@
+ARGS=${ARGS// /\~ \~}
+
+node $DIR/node_modules/@electron-forge/cli/dist/electron-forge-start --vscode -- \~$ARGS\~
