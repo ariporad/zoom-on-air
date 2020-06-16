@@ -7,8 +7,13 @@ export interface OnAirProps {
 }
 
 const OnAir: React.FunctionComponent<OnAirProps> = ({ hidden, muted, className }) => (
-	<div className={`on-air-container ${className || ''}`}>
-		<div className="on-air-dot" data-full={!hidden} data-outline={!muted}></div>
+	<div className={`on-air-container ${(!hidden || !muted) && 'pulsing'} ${className || ''}`}>
+		<div
+			className="on-air-dot"
+			data-full={!hidden}
+			data-outline={!muted}
+			hidden={hidden && muted}
+		></div>
 		<div className="on-air-text">{onAirText(hidden, muted)}</div>
 	</div>
 );

@@ -65,7 +65,7 @@ async function calculateStatus(): Promise<Status> {
 	try {
 		const zoomStatus = await getZoomStatus();
 
-		if (zoomStatus === null || (zoomStatus.muted && zoomStatus.hidden)) {
+		if (zoomStatus === null) {
 			return { type: 'hidden' };
 		}
 
