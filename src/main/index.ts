@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, nativeTheme, dialog, ipcMain, Menu, MenuItem } from 'electron';
 import { getZoomStatus, executeZoomAction } from './zoom';
 import { Status, ZoomAction } from '../common/ipcTypes';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
@@ -108,6 +108,8 @@ async function calculateStatus(): Promise<Status> {
 		}
 	});
 
+	setupDockMenu();
+
 	while (true) {
 		applyStatus(await calculateStatus());
 
@@ -117,3 +119,26 @@ async function calculateStatus(): Promise<Status> {
 	const message = err ? err.message || err : 'Unknown Error';
 	dialog.showErrorBox(message, err.stack || 'No Stack');
 });
+
+function setupDockMenu() {
+	const menu = Menu.buildFromTemplate([
+		{
+			label: 'Preferences…',
+			accelerator: 'Cmd+,',
+			click() {
+				console.log('Preferences not yet implemented');
+			},
+		},
+		{
+			label: 'Launch at Login',
+			type: 'checkbox',
+			checked: app.getLoginItemSettings().openAtLogin,
+			click(item: MenuItem) {
+				console.log('Setting open at login:', item.checked);
+				app.setLoginItemSettings({ openAtLogin: item.checked });
+			},
+		},
+	]);
+
+	app.dock.setMenu(menu);
+}
