@@ -1,4 +1,8 @@
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, nativeTheme, dialog } from 'electron';
+import { getZoomStatus } from './zoomStatus';
+import { Status } from '../common/ipcTypes';
+import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -7,35 +11,44 @@ if (require('electron-squirrel-startup')) {
 	app.quit();
 }
 
-const createWindow = (): void => {
-	// Create the browser window.
-	const mainWindow = new BrowserWindow({
-		height: 150,
-		width: 250,
-		x: 0,
-		y: 0,
-		resizable: true,
-		opacity: 0.75,
-		focusable: true,
-		frame: false,
-		alwaysOnTop: true,
-		// TODO: Keep in sync with index.css
-		backgroundColor: nativeTheme.shouldUseDarkColors ? '#252525' : '#FFFFFF',
-	});
+let mainWindow: BrowserWindow | null = null;
 
-	// and load the index.html of the app.
-	mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+const applyStatus = (status: Status): void => {
+	if (status.type === 'hidden') {
+		if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+		return;
+	}
 
-	// Open the DevTools.
-	mainWindow.webContents.openDevTools();
+	if (!mainWindow || mainWindow.isDestroyed()) {
+		mainWindow = new BrowserWindow({
+			height: 100,
+			width: 300,
+			x: 0,
+			y: 0,
+			resizable: true,
+			opacity: 0.75,
+			focusable: false,
+			frame: false,
+			alwaysOnTop: true,
+			webPreferences: {
+				nodeIntegration: true,
+			},
+			show: false,
+
+			// TODO: Keep in sync with index.css
+			backgroundColor: nativeTheme.shouldUseDarkColors ? '#252525' : '#FFFFFF',
+		});
+
+		mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+		mainWindow.webContents.openDevTools();
+	}
+
+	mainWindow.webContents.send('status', status);
+	if (!mainWindow.isVisible()) mainWindow.show();
 };
 
-app.dock.hide();
-
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+if (process.env.NODE_ENV !== 'development') app.dock.hide();
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -46,13 +59,41 @@ app.on('window-all-closed', () => {
 	}
 });
 
-app.on('activate', () => {
-	// On OS X it's common to re-create a window in the app when the
-	// dock icon is clicked and there are no other windows open.
-	if (BrowserWindow.getAllWindows().length === 0) {
-		createWindow();
-	}
-});
+const sleep = (time: number) => new Promise((done) => setTimeout(done, time));
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
+async function calculateStatus(): Promise<Status> {
+	try {
+		const zoomStatus = await getZoomStatus();
+
+		if (zoomStatus === null) return { type: 'hidden' };
+
+		return {
+			type: 'in-meeting',
+			hidden: zoomStatus.hidden,
+			muted: zoomStatus.muted,
+		};
+	} catch (err) {
+		console.error('Failed to Update Zoom Status!');
+		console.error(err);
+		return {
+			type: 'error',
+			title: 'Failed to Check Zoom Status',
+			text: "It just didn't work",
+		};
+	}
+}
+
+(async function main() {
+	await app.whenReady();
+
+	await installExtension(REACT_DEVELOPER_TOOLS, true);
+
+	while (true) {
+		applyStatus(await calculateStatus());
+
+		await sleep(1000);
+	}
+})().catch((err) => {
+	const message = err ? err.message || err : 'Unknown Error';
+	dialog.showErrorBox(message, err.stack || 'No Stack');
+});

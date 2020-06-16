@@ -1,9 +1,14 @@
 import React from 'react';
+import { Status } from '../common/ipcTypes';
+
+interface AppProps {
+	status: Status;
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const App = () => (
+const App: React.FunctionComponent<AppProps> = ({ status }) => (
 	<>
-		<h1>Hello</h1>
+		<pre>{JSON.stringify(status)}</pre>
 	</>
 );
 
