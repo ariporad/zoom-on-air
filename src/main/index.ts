@@ -40,6 +40,8 @@ const applyStatus = (status: Status): void => {
 		});
 
 		mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+		mainWindow.webContents.openDevTools();
 	}
 
 	mainWindow.webContents.send('status', status);
@@ -88,13 +90,22 @@ async function calculateStatus(): Promise<Status> {
 
 	await installExtension(REACT_DEVELOPER_TOOLS, true);
 
-	ipcMain.on('zoom-action', (e, action: ZoomAction) => {
+	ipcMain.on('zoom-action', async (e, action: ZoomAction) => {
 		console.log('Executing Zoom Action:', action);
-		executeZoomAction(action).catch((err) => {
+		try {
+			await executeZoomAction(action);
+		} catch (err) {
 			console.error('Failed to execute Zoom Action:', action);
 			console.error(err);
 			dialog.showErrorBox(`Failed to Execute Zoom Action: ${action}!`, err);
-		});
+		}
+		try {
+			applyStatus(await calculateStatus());
+		} catch (err) {
+			console.error('Failed to update after executing Zoom Action:', action);
+			console.error(err);
+			console.error('Ignoring, waiting for regular update');
+		}
 	});
 
 	while (true) {

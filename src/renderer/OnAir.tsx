@@ -3,10 +3,11 @@ import React from 'react';
 export interface OnAirProps {
 	hidden: boolean;
 	muted: boolean;
+	className?: string;
 }
 
-const OnAir: React.FunctionComponent<OnAirProps> = ({ hidden, muted }) => (
-	<div className="on-air-container">
+const OnAir: React.FunctionComponent<OnAirProps> = ({ hidden, muted, className }) => (
+	<div className={`on-air-container ${className || ''}`}>
 		<div className="on-air-dot" data-full={!hidden} data-outline={!muted}></div>
 		<div className="on-air-text">{onAirText(hidden, muted)}</div>
 	</div>

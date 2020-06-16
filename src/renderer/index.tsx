@@ -17,6 +17,7 @@ class Container extends React.Component<{}, ContainerState> {
 		super(props);
 		this.state = { Component: require('./App').default, status: { type: 'loading' } };
 	}
+
 	componentDidMount() {
 		if ((module as any).hot) {
 			(module as any).hot.accept('./App', () => {
