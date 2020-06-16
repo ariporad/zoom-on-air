@@ -19,3 +19,15 @@ export interface InMeetingStatus {
 	hidden: boolean;
 	muted: boolean;
 }
+
+/**
+ * An enumeration of all the actions we can trigger in Zoom.
+ *
+ * The string value is the name of the corresponding menu item (within the `Meeting` menu).
+ */
+export enum ZoomAction {
+	Mute = 'Mute Audio',
+	Unmute = 'Unmute Audio',
+	Hide = 'Stop Video',
+	Unhide = 'Start Video',
+}

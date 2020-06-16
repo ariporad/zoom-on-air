@@ -1,6 +1,6 @@
-import { app, BrowserWindow, nativeTheme, dialog } from 'electron';
-import { getZoomStatus } from './zoomStatus';
-import { Status } from '../common/ipcTypes';
+import { app, BrowserWindow, nativeTheme, dialog, ipcMain } from 'electron';
+import { getZoomStatus, executeZoomAction } from './zoom';
+import { Status, ZoomAction } from '../common/ipcTypes';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -40,8 +40,6 @@ const applyStatus = (status: Status): void => {
 		});
 
 		mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-		mainWindow.webContents.openDevTools();
 	}
 
 	mainWindow.webContents.send('status', status);
@@ -89,6 +87,15 @@ async function calculateStatus(): Promise<Status> {
 	await app.whenReady();
 
 	await installExtension(REACT_DEVELOPER_TOOLS, true);
+
+	ipcMain.on('zoom-action', (e, action: ZoomAction) => {
+		console.log('Executing Zoom Action:', action);
+		executeZoomAction(action).catch((err) => {
+			console.error('Failed to execute Zoom Action:', action);
+			console.error(err);
+			dialog.showErrorBox(`Failed to Execute Zoom Action: ${action}!`, err);
+		});
+	});
 
 	while (true) {
 		applyStatus(await calculateStatus());
