@@ -1,7 +1,9 @@
-import { app, BrowserWindow, nativeTheme, dialog, ipcMain, Menu, MenuItem } from 'electron';
+import { app, BrowserWindow, nativeTheme, dialog, ipcMain, Menu, MenuItem, Tray } from 'electron';
+import { resolve } from 'path';
 import { getZoomStatus, executeZoomAction } from './zoom';
-import { Status, ZoomAction } from '../common/ipcTypes';
+import { Status, ZoomAction, InMeetingStatus, ErrorStatus } from '../common/ipcTypes';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+import util from 'electron-util';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
@@ -11,10 +13,30 @@ if (require('electron-squirrel-startup')) {
 	app.quit();
 }
 
+if (!app.requestSingleInstanceLock()) {
+	console.log('App Already Running... Exiting');
+	app.quit();
+}
+
+const RESOURCE_PATH: string = util.is.development
+	? resolve(__dirname, '..', '..', 'res')
+	: resolve(process.resourcesPath, 'res');
+
 let mainWindow: BrowserWindow | null = null;
 
+let bannerEnabled: boolean = true;
+let lastStatus: Status;
+
+const setBannerEnabled = (newValue: boolean): void => {
+	bannerEnabled = newValue;
+	applyStatus(lastStatus);
+};
+
 const applyStatus = (status: Status): void => {
-	if (status.type === 'hidden') {
+	lastStatus = status;
+	setupTray(status);
+
+	if (status.type === 'hidden' || !bannerEnabled) {
 		if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 		return;
 	}
@@ -88,7 +110,9 @@ async function calculateStatus(): Promise<Status> {
 (async function main() {
 	await app.whenReady();
 
-	await installExtension(REACT_DEVELOPER_TOOLS, true);
+	util.enforceMacOSAppLocation();
+
+	if (util.is.development) await installExtension(REACT_DEVELOPER_TOOLS);
 
 	ipcMain.on('zoom-action', async (e, action: ZoomAction) => {
 		console.log('Executing Zoom Action:', action);
@@ -108,8 +132,6 @@ async function calculateStatus(): Promise<Status> {
 		}
 	});
 
-	setupDockMenu();
-
 	while (true) {
 		applyStatus(await calculateStatus());
 
@@ -120,13 +142,94 @@ async function calculateStatus(): Promise<Status> {
 	dialog.showErrorBox(message, err.stack || 'No Stack');
 });
 
-function setupDockMenu() {
-	const menu = Menu.buildFromTemplate([
+let tray: Tray;
+
+function setupTray(status: Status) {
+	let image: string = 'TrayIconDisabled.png';
+	let tooltip: string;
+
+	switch (status.type) {
+		case 'in-meeting':
+			if (status.hidden && !status.muted) {
+				image = 'TrayIconMicOnly.png';
+				tooltip = 'On Air: Camera Off, Mic On';
+			}
+			if (!status.hidden && status.muted) {
+				image = 'TrayIconMicMuted.png';
+				tooltip = 'On Air: Camera On, Mic Off';
+			}
+			if (!status.hidden && !status.muted) {
+				image = 'TrayIconFull.png';
+				tooltip = 'On Air: Both Mic and Camera On';
+			}
+			if (status.hidden && status.muted) {
+				tooltip = 'Off Air: Both Mic and Camera Off';
+			}
+			break;
+		case 'error':
+			tooltip = `Error: ${status.title}` + (status.text ? `(${status.text})` : '');
+			break;
+		case 'loading':
+			tooltip = 'Loading...';
+			break;
+		case 'hidden':
+			tooltip = 'Not in a Zoom Meeting';
+			break;
+	}
+
+	image = resolve(RESOURCE_PATH, image);
+
+	if (!tray || tray.isDestroyed()) {
+		tray = new Tray(image);
+	}
+
+	const contextMenu = Menu.buildFromTemplate([
+		// In Meeting
 		{
-			label: 'Preferences…',
-			accelerator: 'Cmd+,',
-			click() {
-				console.log('Preferences not yet implemented');
+			type: 'checkbox',
+			label: 'Muted',
+			visible: status.type === 'in-meeting',
+			checked: (status as InMeetingStatus).muted || false,
+			click(item) {
+				executeZoomAction(item.checked ? ZoomAction.Mute : ZoomAction.Unmute);
+			},
+		},
+		{
+			type: 'checkbox',
+			label: 'Hidden',
+			visible: status.type === 'in-meeting',
+			checked: (status as InMeetingStatus).hidden || false,
+			click(item) {
+				executeZoomAction(item.checked ? ZoomAction.Hide : ZoomAction.Unhide);
+			},
+		},
+
+		// Error
+		{ label: 'Error!', visible: status.type === 'error', enabled: false },
+		{
+			label: (status as ErrorStatus).title || 'Unknown Error',
+			visible: status.type === 'error',
+			enabled: false,
+		},
+		{
+			label: (status as ErrorStatus).text || '',
+			visible: status.type === 'error' && !!status.text,
+			enabled: false,
+		},
+
+		// Loading
+		{ label: 'Loading...', visible: status.type === 'loading', enabled: false },
+
+		// Hidden
+		{ label: 'Not in a Zoom Meeting', visible: status.type === 'hidden', enabled: false },
+
+		{ type: 'separator' },
+		{
+			type: 'checkbox',
+			label: 'Banner Enabled',
+			checked: bannerEnabled,
+			click(item) {
+				setBannerEnabled(item.checked);
 			},
 		},
 		{
@@ -138,7 +241,24 @@ function setupDockMenu() {
 				app.setLoginItemSettings({ openAtLogin: item.checked });
 			},
 		},
-	]);
+		{
+			label: 'Preferences…',
+			accelerator: 'Cmd+,',
+			click() {
+				console.log('Preferences not yet implemented');
+			},
+		},
 
-	app.dock.setMenu(menu);
+		{ type: 'separator' },
+		{
+			label: 'Quit',
+			click() {
+				app.quit();
+			},
+		},
+	]);
+	tray.setContextMenu(contextMenu);
+
+	tray.setImage(image);
+	tray.setToolTip(tooltip);
 }
