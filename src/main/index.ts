@@ -33,6 +33,10 @@ const setBannerEnabled = (newValue: boolean): void => {
 };
 
 const applyStatus = (status: Status): void => {
+	// Reset bannerEnabled if not in a meeting
+	// Bypass setBannerEnabled to avoid an infinite loop
+	if (status.type !== 'in-meeting') bannerEnabled = true;
+
 	lastStatus = status;
 	setupTray(status);
 
@@ -204,6 +208,17 @@ function setupTray(status: Status) {
 			},
 		},
 
+		{ type: 'separator' },
+		{
+			type: 'checkbox',
+			label: 'Disable Banner for This Meeting',
+			checked: !bannerEnabled,
+			visible: status.type === 'in-meeting',
+			click(item) {
+				setBannerEnabled(item.checked);
+			},
+		},
+
 		// Error
 		{ label: 'Error!', visible: status.type === 'error', enabled: false },
 		{
@@ -224,14 +239,6 @@ function setupTray(status: Status) {
 		{ label: 'Not in a Zoom Meeting', visible: status.type === 'hidden', enabled: false },
 
 		{ type: 'separator' },
-		{
-			type: 'checkbox',
-			label: 'Banner Enabled',
-			checked: bannerEnabled,
-			click(item) {
-				setBannerEnabled(item.checked);
-			},
-		},
 		{
 			label: 'Launch at Login',
 			type: 'checkbox',
