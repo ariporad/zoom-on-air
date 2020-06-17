@@ -1,6 +1,11 @@
 import { app, BrowserWindow, nativeTheme, dialog, ipcMain, Menu, MenuItem, Tray } from 'electron';
 import { resolve } from 'path';
-import { getZoomStatus, executeZoomAction } from './zoom';
+import {
+	executeZoomAction,
+	monitorZoomStatus,
+	ZoomStatus as RawZoomStatus,
+	startZoomMonitor,
+} from './zoom';
 import { Status, ZoomAction, InMeetingStatus, ErrorStatus } from '../common/ipcTypes';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import util from 'electron-util';
@@ -87,13 +92,9 @@ app.on('window-all-closed', () => {
 
 const sleep = (time: number) => new Promise((done) => setTimeout(done, time));
 
-async function calculateStatus(): Promise<Status> {
+function calculateStatus(zoomStatus: RawZoomStatus): Status {
 	try {
-		const zoomStatus = await getZoomStatus();
-
-		if (zoomStatus === null) {
-			return { type: 'hidden' };
-		}
+		if (!zoomStatus.inMeeting) return { type: 'hidden' };
 
 		return {
 			type: 'in-meeting',
@@ -127,19 +128,12 @@ async function calculateStatus(): Promise<Status> {
 			console.error(err);
 			dialog.showErrorBox(`Failed to Execute Zoom Action: ${action}!`, err);
 		}
-		try {
-			applyStatus(await calculateStatus());
-		} catch (err) {
-			console.error('Failed to update after executing Zoom Action:', action);
-			console.error(err);
-			console.error('Ignoring, waiting for regular update');
-		}
 	});
 
-	while (true) {
-		applyStatus(await calculateStatus());
+	startZoomMonitor(); // Intentionally ignoring promise, because it never resolves
 
-		await sleep(1000);
+	for await (const status of await monitorZoomStatus()) {
+		applyStatus(calculateStatus(status));
 	}
 })().catch((err) => {
 	const message = err ? err.message || err : 'Unknown Error';
