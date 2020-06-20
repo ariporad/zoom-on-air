@@ -8,21 +8,21 @@ import { getBannerEnabled, setBannerEnabled } from './bannerWindow';
 let tray: Tray;
 
 export default function configureTrayWithStatus(status: Status) {
-	let image: string = 'TrayIconDisabled.png';
+	let image: string = 'TrayIconDisabledTemplate.png';
 	let tooltip: string;
 
 	switch (status.type) {
 		case 'in-meeting':
 			if (status.hidden && !status.muted) {
-				image = 'TrayIconMicOnly.png';
+				image = 'TrayIconMicOnlyTemplate.png';
 				tooltip = 'On Air: Camera Off, Mic On';
 			}
 			if (!status.hidden && status.muted) {
-				image = 'TrayIconMicMuted.png';
+				image = 'TrayIconMicMutedTemplate.png';
 				tooltip = 'On Air: Camera On, Mic Off';
 			}
 			if (!status.hidden && !status.muted) {
-				image = 'TrayIconFull.png';
+				image = 'TrayIconFullTemplate.png';
 				tooltip = 'On Air: Both Mic and Camera On';
 			}
 			if (status.hidden && status.muted) {

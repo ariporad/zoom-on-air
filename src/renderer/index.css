@@ -12,14 +12,7 @@ body,
 
 	/* Overridden in Dark Mode */
 	background-color: white;
-	color: black;
-}
-
-html,
-body,
-#app {
-	background-color: #252525;
-	color: white;
+	color: #222;
 }
 
 .on-air-container {
@@ -95,16 +88,15 @@ body,
 	height: 75vh;
 	width: 45vw;
 	background: none;
-	border: 4px solid white;
+	border: 4px solid #222;
 	border-radius: 5%;
-	color: white;
 	font-size: 8vw;
 	box-shadow: none;
 	outline: none;
 }
 
 .control-panel-button:hover {
-	background-color: #404040;
+	background-color: #d0d0d0;
 }
 
 body:not(.debug-no-hover):hover .no-hover,
@@ -112,4 +104,22 @@ body.debug-force-hover .no-hover,
 body:not(.debug-force-hover):not(:hover) .only-hover,
 body.debug-no-hover .only-hover {
 	display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+	.control-panel-button {
+		border: 4px solid white;
+		color: white;
+	}
+
+	.control-panel-button:hover {
+		background-color: #404040;
+	}
+
+	html,
+	body,
+	#app {
+		background-color: #252525;
+		color: white;
+	}
 }
