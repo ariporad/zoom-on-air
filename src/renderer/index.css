@@ -64,6 +64,13 @@ body,
 	animation: pulse 1s ease-in-out 0s infinite alternate;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.on-air-container.pulsing {
+		animation: none !important;
+		opacity: 1;
+	}
+}
+
 @keyframes pulse {
 	0% {
 		opacity: 0.25;
