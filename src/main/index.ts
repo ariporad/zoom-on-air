@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron';
+import { app, dialog, ipcMain, systemPreferences } from 'electron';
 import {
 	executeZoomAction,
 	monitorZoomStatus,
@@ -24,14 +24,30 @@ if (!app.requestSingleInstanceLock()) {
 	app.quit();
 }
 
-if (process.env.NODE_ENV !== 'development') app.dock.hide();
-
 (async function main() {
+	// if (!util.is.development) app.dock.hide();
+
 	await app.whenReady();
 
 	util.enforceMacOSAppLocation();
 
 	if (util.is.development) await installExtension(REACT_DEVELOPER_TOOLS);
+
+	// do {
+	// 	const trusted = systemPreferences.isTrustedAccessibilityClient(true);
+	// 	console.log('Is Trusted Accessability Client: ', trusted);
+
+	// 	if (trusted) break;
+
+	// 	const result = await dialog.showMessageBox({
+	// 		message: 'Please Give Zoom On Air Accessibility Access!',
+	// 		title:
+	// 			'Zoom On Air needs this access to check the current Zoom status and to mute/unmute Zoom on your behalf. It does not abuse this power and never sends any data to any other party.',
+	// 		buttons: ['Quit', 'OK'],
+	// 	});
+
+	// 	if (result.response === 0) process.exit(1);
+	// } while (true);
 
 	setupHotkeys();
 	subscribe([updateWindowWithStatus, configureTrayWithStatus]);

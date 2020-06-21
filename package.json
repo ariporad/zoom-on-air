@@ -20,7 +20,8 @@
 	"config": {
 		"forge": {
 			"packagerConfig": {
-				"extraResources": "./res/**"
+				"extraResource": "./res",
+				"icon": "./res/AppIcon"
 			},
 			"makers": [
 				{

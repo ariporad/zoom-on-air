@@ -1,6 +1,7 @@
 import { BrowserWindow, nativeTheme } from 'electron';
 import { Status } from '../common/ipcTypes';
 import { getStatus } from './statusManager';
+import util from 'electron-util';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
@@ -49,7 +50,7 @@ export function updateWindowWithStatus(status: Status): void {
 
 		bannerWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-		bannerWindow.webContents.openDevTools();
+		if (util.is.development) bannerWindow.webContents.openDevTools();
 	}
 
 	bannerWindow.webContents.send('status', status);
