@@ -46,7 +46,7 @@ end run
 
 const generateZoomActionApplescript = (action: ZoomAction) => String.raw`
 on run
-	--tell application "System Events"
+	tell application "System Events"
 		tell process "zoom.us"
 			try
 				set theMenu to menu "Meeting" of menu bar item "Meeting" of menu bar 1
@@ -57,7 +57,7 @@ on run
 			on error number -1728 -- -1728 is when the "Meeting" menu doesn't exist (ie. we're not in a meeting)
 			end try
 		end tell
-	--end tell
+	end tell
 end run
 `;
 

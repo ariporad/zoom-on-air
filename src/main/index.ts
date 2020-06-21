@@ -7,11 +7,12 @@ import {
 } from './zoom';
 import { ZoomAction } from '../common/ipcTypes';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
-import util from 'electron-util';
+import util, { is } from 'electron-util';
 import { subscribe, setStatus } from './statusManager';
 import { setupHotkeys } from './hotkeys';
 import { updateWindowWithStatus } from './bannerWindow';
 import configureTrayWithStatus from './tray';
+import { sleep } from './helpers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // eslint-disable-line-next global-require
@@ -24,30 +25,56 @@ if (!app.requestSingleInstanceLock()) {
 	app.quit();
 }
 
-(async function main() {
-	// if (!util.is.development) app.dock.hide();
+async function promptForAccessibilityAccess(): Promise<void> {
+	if (process.platform !== 'darwin') return;
+	if (systemPreferences.isTrustedAccessibilityClient(false)) return;
 
+	console.log('Prompting for Accessibilty Access');
+
+	const { response } = await dialog.showMessageBox({
+		message: 'Zoom on Air Needs Accessibility Access!',
+		detail:
+			'Zoom on Air uses this to check the status of Zoom and to mute/unmute it on your behalf. It does not abuse this power and no data is ever sent over the Internet.',
+		buttons: ['OK', 'Quit Zoom on Air'],
+		cancelId: 1,
+	});
+
+	if (response === 1) {
+		console.log('User declined accessibility access, exiting...');
+		process.exit(1);
+	}
+
+	// Wait for next tick. Seems to avoid a race condition in Electron
+	await sleep(1);
+
+	// Prompt the user for access (async)
+	systemPreferences.isTrustedAccessibilityClient(true);
+
+	console.log('Waiting for accessibility access to be granted...');
+	let timeout = Date.now() + 5 * 60 * 1000; // 5 minutes
+	while (!systemPreferences.isTrustedAccessibilityClient(false) && Date.now() < timeout) {
+		await sleep(500);
+	}
+
+	// If we timed out and they still haven't given us access
+	if (!systemPreferences.isTrustedAccessibilityClient(false)) {
+		console.log('Accessibility access timed out! Trying again...');
+		return promptForAccessibilityAccess();
+	}
+
+	console.log('Accessibility access granted!');
+}
+
+(async function main() {
 	await app.whenReady();
 
 	util.enforceMacOSAppLocation();
 
+	// if (!util.is.development) app.dock.hide();
+
 	if (util.is.development) await installExtension(REACT_DEVELOPER_TOOLS);
 
-	// do {
-	// 	const trusted = systemPreferences.isTrustedAccessibilityClient(true);
-	// 	console.log('Is Trusted Accessability Client: ', trusted);
-
-	// 	if (trusted) break;
-
-	// 	const result = await dialog.showMessageBox({
-	// 		message: 'Please Give Zoom On Air Accessibility Access!',
-	// 		title:
-	// 			'Zoom On Air needs this access to check the current Zoom status and to mute/unmute Zoom on your behalf. It does not abuse this power and never sends any data to any other party.',
-	// 		buttons: ['Quit', 'OK'],
-	// 	});
-
-	// 	if (result.response === 0) process.exit(1);
-	// } while (true);
+	await promptForAccessibilityAccess();
 
 	setupHotkeys();
 	subscribe([updateWindowWithStatus, configureTrayWithStatus]);
