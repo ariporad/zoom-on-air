@@ -1,7 +1,17 @@
-export type Status = LoadingStatus | HiddenStatus | ErrorStatus | InMeetingStatus;
+export type Status =
+	| LoadingStatus
+	| HiddenStatus
+	| ErrorStatus
+	| InMeetingStatus
+	| NeedsPermissionsStatus;
 
 export interface LoadingStatus {
 	type: 'loading';
+}
+
+export interface NeedsPermissionsStatus {
+	type: 'needs-perms';
+	perms: 'accessibility'; // to be extended in the future
 }
 
 export interface HiddenStatus {

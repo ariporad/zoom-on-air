@@ -1,5 +1,5 @@
 import { resolve } from 'path';
-import { Tray, Menu, app, MenuItem } from 'electron';
+import { Tray, Menu, app, MenuItem, systemPreferences } from 'electron';
 import { Status, InMeetingStatus, ZoomAction, ErrorStatus } from '../common/ipcTypes';
 import { executeZoomAction } from './zoom';
 import { RESOURCE_PATH } from './helpers';
@@ -35,6 +35,8 @@ export default function configureTrayWithStatus(status: Status) {
 		case 'loading':
 			tooltip = 'Loading...';
 			break;
+		case 'needs-perms':
+			tooltip = 'Zoom on Air Needs Accessibility Access!';
 		case 'hidden':
 			tooltip = 'Not in a Zoom Meeting';
 			break;
@@ -96,6 +98,20 @@ export default function configureTrayWithStatus(status: Status) {
 
 		// Hidden
 		{ label: 'Not in a Zoom Meeting', visible: status.type === 'hidden', enabled: false },
+
+		// Needs Perms
+		{
+			label: 'Zoom on Air Needs Accessibility Permissions',
+			visible: status.type === 'needs-perms' && status.perms === 'accessibility',
+			submenu: [
+				{
+					label: 'Grant Access',
+					click() {
+						systemPreferences.isTrustedAccessibilityClient(true);
+					},
+				},
+			],
+		},
 
 		{ type: 'separator' },
 		{

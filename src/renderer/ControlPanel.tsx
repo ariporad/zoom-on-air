@@ -1,6 +1,4 @@
 import React from 'react';
-import { ipcRenderer } from 'electron';
-import { ZoomAction } from '../common/ipcTypes';
 
 interface ButtonProps {
 	className?: string;
@@ -13,56 +11,26 @@ const Button: React.FunctionComponent<ButtonProps> = ({ className, ...props }) =
 );
 
 export interface ControlPanelProps {
-	hidden: boolean;
-	muted: boolean;
+	buttons: { text: string; visible?: boolean; className?: string; onClick?: () => void }[];
+
 	className?: string;
 }
 
-interface ControlPanelState {
-	hidden: boolean;
-	muted: boolean;
-}
-
 export default class ControlPanel extends React.Component<ControlPanelProps> {
-	makeActionHandler(action: ZoomAction) {
-		return (): void => {
-			ipcRenderer.send('zoom-action', action);
-		};
-	}
-
 	render() {
-		const { muted, hidden, className } = this.props;
+		const { buttons, className } = this.props;
 
 		return (
 			<div className={`control-panel ${className || ''}`}>
-				<Button
-					className="mute"
-					hidden={muted}
-					onClick={this.makeActionHandler(ZoomAction.Mute)}
-				>
-					Mute
-				</Button>
-				<Button
-					className="unmute"
-					hidden={!muted}
-					onClick={this.makeActionHandler(ZoomAction.Unmute)}
-				>
-					Unmute
-				</Button>
-				<Button
-					className="hide"
-					hidden={hidden}
-					onClick={this.makeActionHandler(ZoomAction.Hide)}
-				>
-					Hide
-				</Button>
-				<Button
-					className="unhide"
-					hidden={!hidden}
-					onClick={this.makeActionHandler(ZoomAction.Unhide)}
-				>
-					Unhide
-				</Button>
+				{buttons.map((button) => (
+					<Button
+						className={button.className}
+						hidden={button.visible === false}
+						onClick={button.onClick}
+					>
+						{button.text}
+					</Button>
+				))}
 			</div>
 		);
 	}

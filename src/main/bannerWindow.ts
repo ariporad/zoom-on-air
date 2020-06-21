@@ -53,6 +53,12 @@ export function updateWindowWithStatus(status: Status): void {
 		if (util.is.development) bannerWindow.webContents.openDevTools();
 	}
 
-	bannerWindow.webContents.send('status', status);
+	if (bannerWindow.webContents.isLoading()) {
+		bannerWindow.webContents.on('did-finish-load', () => {
+			bannerWindow.webContents.send('status', status);
+		});
+	} else {
+		bannerWindow.webContents.send('status', status);
+	}
 	if (!bannerWindow.isVisible()) bannerWindow.show();
 }
