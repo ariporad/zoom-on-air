@@ -1,7 +1,7 @@
 import { BrowserWindow, nativeTheme } from 'electron';
 import { Status } from '../common/ipcTypes';
-import { getStatus } from './statusManager';
 import util from 'electron-util';
+import { statusManager } from './helpers';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
@@ -10,7 +10,7 @@ let bannerWindow: BrowserWindow | null = null;
 
 export function setBannerEnabled(enabled: boolean): void {
 	bannerEnabled = enabled;
-	const status = getStatus(false);
+	const status = statusManager.current;
 	// XXX: If status isn't in-meeting, this will immediately reset bannerEnabled
 	if (status) updateWindowWithStatus(status);
 }

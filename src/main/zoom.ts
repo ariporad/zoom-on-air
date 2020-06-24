@@ -154,10 +154,12 @@ export async function executeZoomAction(
 	} catch (err) {
 		console.error('Failed to execute Zoom action:', action);
 		console.error(err);
-		dialog.showErrorBox(
-			`Failed to Execute Zoom Action: ${action}`,
-			err.message + (err.stack ? '\n' + err.stack : ''),
-		);
+		if (showDialogOnFail) {
+			dialog.showErrorBox(
+				`Failed to Execute Zoom Action: ${action}`,
+				err.message + (err.stack ? '\n' + err.stack : ''),
+			);
+		}
 		return false;
 	}
 }

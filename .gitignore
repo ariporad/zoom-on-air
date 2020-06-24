@@ -1,4 +1,5 @@
 dist
+.config
 
 # Logs
 logs

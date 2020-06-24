@@ -1,17 +1,28 @@
 import { globalShortcut } from 'electron';
 import { executeZoomAction } from './zoom';
-import { ZoomAction, Status } from '../common/ipcTypes';
-import { getStatus } from './statusManager';
+import { ZoomAction } from '../common/ipcTypes';
+import { statusManager, ConfigType } from './helpers';
 
-const MUTE_SHORTCUT = 'F20';
+function bindHotkey(accelerator: string, handler: () => void): void {
+	if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
 
-export function setupHotkeys() {
-	if (globalShortcut.isRegistered(MUTE_SHORTCUT)) globalShortcut.unregister(MUTE_SHORTCUT);
-	// F20 doesn't exist on most keyboards, but I have my Insert key mapped to it
-	globalShortcut.register(MUTE_SHORTCUT, () => {
-		const status = getStatus(false);
-		if (!status) return;
-		if (status.type !== 'in-meeting') return;
-		executeZoomAction(status.muted ? ZoomAction.Unmute : ZoomAction.Mute);
-	});
+	globalShortcut.register(accelerator, handler);
+}
+
+export function setupHotkeys(config: ConfigType) {
+	if (config.muteHotkey) {
+		bindHotkey(config.muteHotkey, () => {
+			const status = statusManager.current;
+			if (status.type !== 'in-meeting') return;
+			executeZoomAction(status.muted ? ZoomAction.Unmute : ZoomAction.Mute);
+		});
+	}
+
+	if (config.hideHotkey) {
+		bindHotkey(config.hideHotkey, () => {
+			const status = statusManager.current;
+			if (status.type !== 'in-meeting') return;
+			executeZoomAction(status.hidden ? ZoomAction.Unhide : ZoomAction.Hide);
+		});
+	}
 }

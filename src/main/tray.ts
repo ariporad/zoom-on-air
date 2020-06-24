@@ -1,13 +1,16 @@
 import { resolve } from 'path';
-import { Tray, Menu, app, MenuItem, systemPreferences } from 'electron';
+import { Tray, Menu, app, MenuItem, systemPreferences, dialog, shell } from 'electron';
 import { Status, InMeetingStatus, ZoomAction, ErrorStatus } from '../common/ipcTypes';
 import { executeZoomAction } from './zoom';
-import { RESOURCE_PATH } from './helpers';
+import { RESOURCE_PATH, configManager, statusManager } from './helpers';
 import { getBannerEnabled, setBannerEnabled } from './bannerWindow';
 
 let tray: Tray;
 
-export default function configureTrayWithStatus(status: Status) {
+export default function updateTray() {
+	const status = statusManager.current;
+	const config = configManager.current;
+
 	let image: string = 'TrayIconDisabledTemplate.png';
 	let tooltip: string;
 
@@ -115,20 +118,56 @@ export default function configureTrayWithStatus(status: Status) {
 
 		{ type: 'separator' },
 		{
-			label: 'Launch at Login',
-			type: 'checkbox',
-			checked: app.getLoginItemSettings().openAtLogin,
-			click(item: MenuItem) {
-				console.log('Setting open at login:', item.checked);
-				app.setLoginItemSettings({ openAtLogin: item.checked });
-			},
-		},
-		{
 			label: 'Preferences…',
-			accelerator: 'Cmd+,',
-			click() {
-				console.log('Preferences not yet implemented');
-			},
+			submenu: [
+				{
+					label: 'Launch at Login',
+					type: 'checkbox',
+					checked: config.openAtLogin,
+					async click(item: MenuItem) {
+						console.log('Setting open at login:', item.checked);
+						await configManager.set({ openAtLogin: item.checked });
+					},
+				},
+				{
+					label: 'Show Dock Icon',
+					type: 'checkbox',
+					checked: config.showDockIcon,
+					async click(item: MenuItem) {
+						console.log('Setting showDockIcon:', item.checked);
+						await configManager.set({ showDockIcon: item.checked });
+					},
+				},
+				{
+					label: 'Hotkeys',
+					submenu: [
+						{
+							label: `Mute/Unmute: ${config.muteHotkey || 'Disabled'}`,
+							enabled: false,
+						},
+						{
+							label: `Hide/Unhide: ${config.hideHotkey || 'Disabled'}`,
+							enabled: false,
+						},
+						{ type: 'separator' },
+						{
+							label: 'Change Hotkeys',
+							async click() {
+								const { response } = await dialog.showMessageBox({
+									type: 'info',
+									buttons: ['Show in Finder', 'OK'],
+									message: 'Hotkey Change Instructions',
+									detail: `Zoom on Air doesn't yet have a UI for specifying hotkeys. To change them manually, edit the configuration file at ${configManager.path}. Please specify the hotkeys as Electron Accelerators: https://www.electronjs.org/docs/api/accelerator`,
+									cancelId: 1,
+									defaultId: 0,
+								});
+
+								if (response === 0) shell.showItemInFolder(configManager.path);
+							},
+						},
+					],
+				},
+			],
 		},
 
 		{ type: 'separator' },
