@@ -1,6 +1,6 @@
 {
 	"name": "zoom-on-air",
-	"productName": "zoom-on-air",
+	"productName": "Zoom on Air",
 	"version": "1.0.0",
 	"description": "My Electron application description",
 	"main": ".webpack/main",
